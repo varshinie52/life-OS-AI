@@ -1,0 +1,212 @@
+.main {
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: var(--background);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  transition: background 1s ease-in-out;
+  pointer-events: none;
+}
+
+.backBtn {
+  position: absolute;
+  top: 40px;
+  left: 40px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border-subtle);
+}
+.backBtn:hover {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.1);
+}
+
+.layout {
+  display: flex;
+  gap: 120px;
+  z-index: 2;
+  align-items: center;
+}
+
+/* Timer */
+.timerSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.modeIndicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 40px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.circleContainer {
+  position: relative;
+  width: 400px;
+  height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 60px;
+}
+
+.svgCircle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.timeDisplay {
+  font-size: 7rem;
+  font-family: var(--font-mono);
+  font-weight: 200;
+  color: var(--text-primary);
+  letter-spacing: -4px;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.controlBtn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.controlBtn:hover { color: var(--text-primary); }
+
+.playBtn {
+  color: white;
+  border: none;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+.playBtn:hover { transform: scale(1.05); }
+.playBtn:active { transform: scale(0.95); }
+
+/* Tasks */
+.tasksSection {
+  width: 400px;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.tasksTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 24px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.taskList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  padding-right: 16px;
+}
+.taskList::-webkit-scrollbar { width: 4px; }
+.taskList::-webkit-scrollbar-track { background: transparent; }
+.taskList::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 4px; }
+
+.taskCard {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  transition: all 0.2s;
+}
+.taskCard:hover { background: rgba(255,255,255,0.05); border-color: var(--border-active); }
+
+.checkBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0;
+  margin-top: 2px;
+}
+.checkBtn:hover { color: var(--accent-primary); }
+
+.taskInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.taskTitle {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.taskDesc {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.emptyTasks {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+@media (max-width: 1024px) {
+  .layout { flex-direction: column; gap: 60px; }
+  .tasksSection { width: 100%; max-width: 500px; }
+  .circleContainer { width: 300px; height: 300px; }
+  .timeDisplay { font-size: 5rem; }
+}

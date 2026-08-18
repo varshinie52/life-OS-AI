@@ -1,0 +1,171 @@
+.sidebar {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  bottom: 16px;
+  width: 80px;
+  background: var(--sidebar-bg);
+  border-radius: 32px;
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  z-index: 50;
+  overflow-y: auto;
+  overflow-x: visible; /* Required for tooltips to break out of the container */
+  scrollbar-width: none;
+  box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar::-webkit-scrollbar { display: none; }
+
+/* LOGO SECTION */
+.logoSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 32px;
+  margin-top: 8px;
+}
+
+.logoSquare {
+  width: 52px;
+  height: 52px;
+  background: var(--surface-solid);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  box-shadow: 0px 4px 12px rgba(0,0,0,.03);
+  transition: all 250ms cubic-bezier(.22,.61,.36,1);
+  text-decoration: none;
+}
+
+.logoSquare:hover {
+  transform: translateY(-2px);
+  box-shadow: 0px 8px 20px rgba(0,0,0,.05);
+}
+
+/* NAVIGATION RAIL */
+.navGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.navItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  background: transparent;
+  border-radius: 18px;
+  border: none;
+  color: var(--text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 250ms cubic-bezier(.22,.61,.36,1);
+}
+
+.navItem:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+  transform: translateY(-2px);
+}
+
+/* Active State */
+.navItem.active {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+  box-shadow: 0px 4px 12px rgba(0,0,0,.03);
+}
+
+.activeIndicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 24px;
+  width: 3px;
+  background: var(--accent-primary);
+  border-radius: 0 4px 4px 0;
+  opacity: 0;
+  transition: opacity 250ms ease;
+}
+
+.navItem.active .activeIndicator {
+  opacity: 1;
+}
+
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: inherit;
+  transition: color 250ms ease;
+}
+
+.iconWrapper svg {
+  transition: fill 250ms ease, stroke 250ms ease;
+  fill: transparent;
+}
+
+.navItem.active .iconWrapper {
+  color: var(--accent-primary);
+}
+
+.navItem.active .iconWrapper svg {
+  fill: rgba(15, 139, 141, 0.15); /* Soft fill to feel premium */
+  stroke: var(--accent-primary);
+}
+
+/* FLOATING TOOLTIPS */
+.tooltip {
+  position: absolute;
+  left: 100%;
+  margin-left: 16px; /* Spacing from the sidebar */
+  background: var(--surface-solid);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0px 4px 16px rgba(0,0,0,.05);
+  white-space: nowrap;
+  
+  /* Animation initial state */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-8px) scale(0.95);
+  transform-origin: left center;
+  transition: all 200ms cubic-bezier(.22,.61,.36,1);
+  pointer-events: none; /* Prevents tooltip from interfering with hover */
+  z-index: 100;
+}
+
+.navItem:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0) scale(1);
+  transition-delay: 50ms;
+}
+
+/* BOTTOM SECTION */
+.bottomSection {
+  margin-top: auto; /* Pushes the bottom section down */
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border-subtle);
+  width: 32px;
+  margin: 0 auto;
+}

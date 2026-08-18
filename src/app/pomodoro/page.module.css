@@ -1,0 +1,166 @@
+.main {
+  padding: 40px;
+  max-width: 1000px;
+  margin: 0 auto;
+  min-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 48px;
+  text-align: center;
+  justify-content: center;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-family: var(--font-heading);
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+}
+
+.timerContainer {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timerWrapper {
+  background: var(--surface-glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 40px;
+  padding: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 600px;
+}
+[data-theme='light'] .timerWrapper { background: rgba(255,255,255,0.7); }
+
+.modeSelector {
+  display: flex;
+  background: rgba(0,0,0,0.2);
+  border-radius: var(--radius-full);
+  padding: 6px;
+  margin-bottom: 48px;
+  border: 1px solid var(--border-subtle);
+}
+
+.modeBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 8px 24px;
+  border-radius: var(--radius-full);
+  font-size: 0.95rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.modeBtn:hover {
+  color: var(--text-primary);
+}
+
+.activeMode {
+  background: var(--surface-solid);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-soft);
+}
+
+.circleContainer {
+  position: relative;
+  width: 320px;
+  height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 48px;
+}
+
+.svgCircle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.timeDisplay {
+  font-size: 5rem;
+  font-family: var(--font-mono);
+  font-weight: 200;
+  color: var(--text-primary);
+  letter-spacing: -2px;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.controlBtn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.controlBtn:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-primary);
+}
+
+.playBtn {
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+  box-shadow: 0 10px 20px rgba(0, 128, 128, 0.3);
+}
+
+.playBtn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 15px 30px rgba(0, 128, 128, 0.4);
+}
+.playBtn:active {
+  transform: scale(0.95);
+}
+
+@media (max-width: 768px) {
+  .timerWrapper { padding: 32px 16px; border-radius: 24px; }
+  .modeBtn { padding: 8px 16px; font-size: 0.85rem; }
+  .circleContainer { width: 260px; height: 260px; }
+  .timeDisplay { font-size: 4rem; }
+}

@@ -1,0 +1,126 @@
+.main {
+  padding: 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 40px;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-family: var(--font-heading);
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.iconWrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.iconWrapper svg {
+  width: 28px;
+  height: 28px;
+}
+
+.statLabel {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.statValue {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.chartsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 32px;
+}
+
+.chartTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chartArea {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.barRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.barLabel {
+  width: 120px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.barTrack {
+  flex: 1;
+  height: 12px;
+  background: rgba(0,0,0,0.2);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+[data-theme='light'] .barTrack { background: rgba(0,0,0,0.05); }
+
+.barFill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 1s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.barValue {
+  width: 40px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+.emptyText {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+@media (max-width: 1024px) {
+  .chartsGrid { grid-template-columns: 1fr; }
+}
