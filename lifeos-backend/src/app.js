@@ -25,6 +25,7 @@ const expenseRoutes = require('./modules/expenses/expense.routes');
 const pomodoroRoutes = require('./modules/pomodoro/pomodoro.routes');
 const analyticsRoutes = require('./modules/analytics/analytics.routes');
 const dashboardRoutes = require('./modules/dashboard/dashboard.routes');
+const settingsRoutes = require('./modules/settings/settings.routes');
 const aiRoutes = require('./modules/ai/ai.routes');
 const searchRoutes = require('./modules/search/search.routes');
 
@@ -37,8 +38,33 @@ app.use(cookieParser());
 
 // Security middlewares
 app.use(helmet()); 
-app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
-app.use(mongoSanitize()); 
+app.use((req, res, next) => {
+  if (req.body) mongoSanitize.sanitize(req.body);
+  if (req.params) mongoSanitize.sanitize(req.params);
+  if (req.query) mongoSanitize.sanitize(req.query);
+  next();
+});
+const allowedOrigins = [
+  env.CORS_ORIGIN,
+  env.CLIENT_URL,
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (
+      !origin ||
+      allowedOrigins.includes(origin) ||
+      (env.NODE_ENV === 'development' && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) ||
+      (origin && (origin.endsWith('.vercel.app') || origin.endsWith('.now.sh')))
+    ) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
 app.use(hpp());
 app.use('/api', apiLimiter); 
 
@@ -65,6 +91,7 @@ app.use(`${API_PREFIX}/expenses`, expenseRoutes);
 app.use(`${API_PREFIX}/pomodoro`, pomodoroRoutes);
 app.use(`${API_PREFIX}/analytics`, analyticsRoutes);
 app.use(`${API_PREFIX}/dashboard`, dashboardRoutes);
+app.use(`${API_PREFIX}/settings`, settingsRoutes);
 
 // Optional features we are adding next
 try {
@@ -81,6 +108,10 @@ try {
 
 const syncRoutes = require('./modules/sync/sync.routes');
 app.use(`${API_PREFIX}/sync`, syncRoutes);
+
+app.get('/', (req, res) => {
+  res.status(200).json({ status: 'success', message: 'LifeOS API is running' });
+});
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'success', message: 'LifeOS API is running' });

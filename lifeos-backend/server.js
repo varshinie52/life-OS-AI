@@ -1,3 +1,10 @@
+try {
+  const dns = require('dns');
+  dns.setServers(['8.8.8.8', '8.8.4.4']); // Fix for local DNS blocking SRV queries in Node.js
+} catch {
+  // Ignore DNS override errors in restricted cloud container environments
+}
+
 const app = require('./src/app');
 const { connectDB } = require('./src/config/db');
 const { env } = require('./src/config/env');
