@@ -117,6 +117,10 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'success', message: 'LifeOS API is running' });
 });
 
+app.get(`${API_PREFIX}/health`, (req, res) => {
+  res.status(200).json({ status: 'success', message: 'LifeOS API is running' });
+});
+
 // Handle unhandled routes
 app.use((req, res, next) => {
   next(new ApiError(404, `Can't find ${req.originalUrl} on this server!`));
