@@ -44,12 +44,15 @@ const userSchema = new mongoose.Schema(
     },
     isEmailVerified: {
       type: Boolean,
-      default: false,
+      default: true,
     },
-    emailVerificationToken: String,
-    emailVerificationExpiry: Date,
-    passwordResetToken: String,
-    passwordResetExpiry: Date,
+    passwordResetOtpHash: String,
+    passwordResetOtpExpiresAt: Date,
+    passwordResetOtpAttempts: {
+      type: Number,
+      default: 0,
+    },
+    passwordResetOtpVerifiedAt: Date,
     refreshToken: {
       type: String,
       select: false,
@@ -66,12 +69,11 @@ const userSchema = new mongoose.Schema(
 );
 
 // Hash password before saving
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
+userSchema.pre('save', async function () {
+  if (!this.isModified('password')) return;
 
   // Hash the password with cost of 12
   this.password = await bcrypt.hash(this.password, 12);
-  next();
 });
 
 // Instance method to check password
@@ -82,34 +84,20 @@ userSchema.methods.correctPassword = async function (
   return await bcrypt.compare(candidatePassword, userPassword);
 };
 
-// Generate password reset token
-userSchema.methods.createPasswordResetToken = function () {
-  const resetToken = crypto.randomBytes(32).toString('hex');
+// Generate 6-digit password reset OTP
+userSchema.methods.createPasswordResetOtp = function () {
+  const otp = crypto.randomInt(100000, 1000000).toString();
 
-  this.passwordResetToken = crypto
+  this.passwordResetOtpHash = crypto
     .createHash('sha256')
-    .update(resetToken)
+    .update(otp)
     .digest('hex');
 
-  // 10 minutes expiry
-  this.passwordResetExpiry = Date.now() + 10 * 60 * 1000;
+  this.passwordResetOtpExpiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+  this.passwordResetOtpAttempts = 0;
+  this.passwordResetOtpVerifiedAt = undefined;
 
-  return resetToken;
-};
-
-// Generate email verification token
-userSchema.methods.createEmailVerificationToken = function () {
-  const verificationToken = crypto.randomBytes(32).toString('hex');
-
-  this.emailVerificationToken = crypto
-    .createHash('sha256')
-    .update(verificationToken)
-    .digest('hex');
-
-  // 24 hours expiry
-  this.emailVerificationExpiry = Date.now() + 24 * 60 * 60 * 1000;
-
-  return verificationToken;
+  return otp;
 };
 
 const User = mongoose.model('User', userSchema);

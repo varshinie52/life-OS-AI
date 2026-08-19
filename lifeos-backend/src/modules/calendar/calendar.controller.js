@@ -8,8 +8,23 @@ const createEvent = asyncHandler(async (req, res) => {
 });
 
 const getEvents = asyncHandler(async (req, res) => {
-  const events = await calendarService.getEvents(req.user._id, req.query);
-  res.status(200).json(new ApiResponse(200, { events }, 'Events fetched successfully'));
+  const events = await calendarService.getUnifiedEvents(req.user._id, req.query);
+  res.status(200).json(new ApiResponse(200, { events }, 'Unified calendar events fetched successfully'));
+});
+
+const getMonthView = asyncHandler(async (req, res) => {
+  const monthData = await calendarService.getMonthView(req.user._id, req.query);
+  res.status(200).json(new ApiResponse(200, monthData, 'Month view calendar events fetched successfully'));
+});
+
+const getDayAgenda = asyncHandler(async (req, res) => {
+  const dayData = await calendarService.getDayAgenda(req.user._id, req.query);
+  res.status(200).json(new ApiResponse(200, dayData, 'Day agenda calendar events fetched successfully'));
+});
+
+const getAgenda = asyncHandler(async (req, res) => {
+  const agendaData = await calendarService.getAgenda(req.user._id, req.query);
+  res.status(200).json(new ApiResponse(200, agendaData, 'Upcoming calendar agenda fetched successfully'));
 });
 
 const getEventById = asyncHandler(async (req, res) => {
@@ -30,6 +45,9 @@ const deleteEvent = asyncHandler(async (req, res) => {
 module.exports = {
   createEvent,
   getEvents,
+  getMonthView,
+  getDayAgenda,
+  getAgenda,
   getEventById,
   updateEvent,
   deleteEvent,

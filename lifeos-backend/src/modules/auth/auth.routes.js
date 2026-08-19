@@ -15,7 +15,7 @@ router.post(
   [
     check('name', 'Name is required').not().isEmpty(),
     check('email', 'Please include a valid email').isEmail(),
-    check('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 }),
+    check('password', 'Password must be at least 8 characters').isLength({ min: 8 }),
   ],
   validate,
   authController.register
@@ -34,7 +34,12 @@ router.post(
 router.post('/logout', protect, authController.logout);
 router.post('/refresh-token', authController.refreshToken);
 
-router.get('/verify-email/:token', authController.verifyEmail);
+router.post(
+  '/test-email',
+  [check('email', 'Please include a valid email').isEmail()],
+  validate,
+  authController.testEmail
+);
 
 router.post(
   '/forgot-password',
@@ -44,8 +49,22 @@ router.post(
 );
 
 router.post(
-  '/reset-password/:token',
-  [check('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 })],
+  '/verify-otp',
+  [
+    check('email', 'Please include a valid email').isEmail(),
+    check('otp', 'OTP must be 6 digits').isLength({ min: 6, max: 6 }),
+  ],
+  validate,
+  authController.verifyOtp
+);
+
+router.post(
+  '/reset-password',
+  [
+    check('email', 'Please include a valid email').isEmail(),
+    check('otp', 'OTP must be 6 digits').isLength({ min: 6, max: 6 }),
+    check('password', 'Password must be at least 8 characters').isLength({ min: 8 }),
+  ],
   validate,
   authController.resetPassword
 );
@@ -57,7 +76,7 @@ router.put(
   '/change-password',
   [
     check('currentPassword', 'Current password is required').exists(),
-    check('newPassword', 'Please enter a new password with 6 or more characters').isLength({ min: 6 }),
+    check('newPassword', 'Password must be at least 8 characters').isLength({ min: 8 }),
   ],
   validate,
   authController.changePassword

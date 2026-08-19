@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# scratch & test artifacts
+test-screenshots/
+test-results.json
+test-token.txt
+e2e-test.js
+lifeos-backend/node_modules/
+lifeos-backend/*.js
+lifeos-backend/tests/
+!lifeos-backend/server.js
+widgets/
+
+

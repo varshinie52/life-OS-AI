@@ -6,12 +6,14 @@ const { protect } = require('../../middleware/auth.middleware');
 
 const router = express.Router();
 
+// All task routes require authentication
 router.use(protect);
 
 router.post(
   '/',
   [
-    check('title', 'Title is required').not().isEmpty(),
+    check('title', 'Title or name is required').optional().not().isEmpty(),
+    check('name', 'Title or name is required').optional().not().isEmpty(),
     check('status').optional().isIn(['todo', 'in_progress', 'done']),
     check('priority').optional().isIn(['low', 'medium', 'high', 'urgent']),
   ],
@@ -20,7 +22,22 @@ router.post(
 );
 
 router.get('/', taskController.getTasks);
+router.get('/today', taskController.getTodayTasks);
+router.get('/upcoming', taskController.getUpcomingTasks);
+router.get('/overdue', taskController.getOverdueTasks);
+router.get('/analytics', taskController.getTaskAnalytics);
+
 router.get('/:id', taskController.getTaskById);
+
+router.patch(
+  '/:id',
+  [
+    check('status').optional().isIn(['todo', 'in_progress', 'done']),
+    check('priority').optional().isIn(['low', 'medium', 'high', 'urgent']),
+  ],
+  validate,
+  taskController.updateTask
+);
 
 router.put(
   '/:id',
@@ -33,6 +50,9 @@ router.put(
 );
 
 router.delete('/:id', taskController.deleteTask);
-router.patch('/:id/toggle', taskController.toggleTaskStatus);
+
+router.post('/:id/complete', taskController.toggleTaskComplete);
+router.post('/:id/archive', taskController.toggleTaskArchive);
+router.patch('/:id/toggle', taskController.toggleTaskComplete);
 
 module.exports = router;

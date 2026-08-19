@@ -6,6 +6,7 @@ const { protect } = require('../../middleware/auth.middleware');
 
 const router = express.Router();
 
+// All calendar routes require authentication
 router.use(protect);
 
 router.post(
@@ -20,7 +21,22 @@ router.post(
 );
 
 router.get('/', calendarController.getEvents);
+router.get('/events', calendarController.getEvents);
+router.get('/month', calendarController.getMonthView);
+router.get('/day', calendarController.getDayAgenda);
+router.get('/agenda', calendarController.getAgenda);
+
 router.get('/:id', calendarController.getEventById);
+
+router.patch(
+  '/:id',
+  [
+    check('startTime').optional().isISO8601(),
+    check('endTime').optional().isISO8601(),
+  ],
+  validate,
+  calendarController.updateEvent
+);
 
 router.put(
   '/:id',

@@ -17,13 +17,11 @@ const noteSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
-    isPinned: {
-      type: Boolean,
-      default: false,
-    },
-    isArchived: {
-      type: Boolean,
-      default: false,
+    folder: {
+      type: String,
+      default: 'General',
+      trim: true,
+      index: true,
     },
     tags: [
       {
@@ -33,15 +31,29 @@ const noteSchema = new mongoose.Schema(
     ],
     color: {
       type: String,
+      default: '#0F8B8D',
       trim: true,
+    },
+    isPinned: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    isArchived: {
+      type: Boolean,
+      default: false,
+      index: true,
     },
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
 
-// Indexes
+// Compound indexes
+noteSchema.index({ userId: 1, folder: 1, isArchived: 1 });
 noteSchema.index({ userId: 1, isPinned: -1, updatedAt: -1 });
 noteSchema.index({ title: 'text', content: 'text', tags: 'text' });
 

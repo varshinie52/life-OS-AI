@@ -8,7 +8,7 @@ const createHabit = asyncHandler(async (req, res) => {
 });
 
 const getHabits = asyncHandler(async (req, res) => {
-  const habits = await habitService.getHabits(req.user._id);
+  const habits = await habitService.getHabits(req.user._id, req.query);
   res.status(200).json(new ApiResponse(200, { habits }, 'Habits fetched successfully'));
 });
 
@@ -27,9 +27,15 @@ const deleteHabit = asyncHandler(async (req, res) => {
   res.status(200).json(new ApiResponse(200, null, 'Habit deleted successfully'));
 });
 
-const checkIn = asyncHandler(async (req, res) => {
-  const log = await habitService.checkIn(req.user._id, req.params.id, req.body);
-  res.status(200).json(new ApiResponse(200, { log }, 'Habit check-in successful'));
+const toggleHabit = asyncHandler(async (req, res) => {
+  const { date, completed } = req.body;
+  const result = await habitService.toggleHabit(req.user._id, req.params.id, date, completed);
+  res.status(200).json(new ApiResponse(200, result, 'Habit toggled successfully'));
+});
+
+const getHabitAnalytics = asyncHandler(async (req, res) => {
+  const analytics = await habitService.getHabitAnalytics(req.user._id);
+  res.status(200).json(new ApiResponse(200, { analytics }, 'Habit analytics fetched successfully'));
 });
 
 const getHabitLogs = asyncHandler(async (req, res) => {
@@ -48,7 +54,9 @@ module.exports = {
   getHabitById,
   updateHabit,
   deleteHabit,
-  checkIn,
+  toggleHabit,
+  checkIn: toggleHabit,
+  getHabitAnalytics,
   getHabitLogs,
   getHabitStats,
 };

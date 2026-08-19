@@ -8,37 +8,71 @@ const journalSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    title: {
+      type: String,
+      trim: true,
+      default: 'Daily Reflection',
+    },
+    content: {
+      type: String,
+      required: [true, 'Journal content is required'],
+      trim: true,
+    },
     date: {
       type: Date,
       default: Date.now,
       index: true,
     },
-    title: {
-      type: String,
-      trim: true,
-    },
-    content: {
-      type: String,
-      required: true,
-    },
     mood: {
       type: String,
       enum: ['great', 'good', 'okay', 'bad', 'awful'],
+      default: 'good',
     },
     moodScore: {
       type: Number,
-      min: 1,
-      max: 5,
+      default: 4,
     },
+    gratitude: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    wins: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    challenges: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    reflections: {
+      type: String,
+      trim: true,
+    },
+    tomorrowGoals: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
     tags: [
       {
         type: String,
         trim: true,
       },
     ],
-    isPrivate: {
+    writingStreak: {
+      type: Number,
+      default: 1,
+    },
+    isArchived: {
       type: Boolean,
-      default: true,
+      default: false,
     },
   },
   {
@@ -46,25 +80,22 @@ const journalSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
+// Compound index for querying user entries by date
 journalSchema.index({ userId: 1, date: -1 });
-journalSchema.index({ title: 'text', content: 'text' });
+journalSchema.index({ title: 'text', content: 'text', reflections: 'text' });
 
-// Pre-save to auto-calculate moodScore from mood string if not provided
-journalSchema.pre('save', function(next) {
-  if (this.isModified('mood') && !this.isModified('moodScore')) {
-    const moodMap = {
-      great: 5,
-      good: 4,
-      okay: 3,
-      bad: 2,
-      awful: 1,
-    };
-    if (this.mood) {
-      this.moodScore = moodMap[this.mood];
-    }
+// Sync moodScore mapping without next() callback
+journalSchema.pre('save', function () {
+  const moodMap = {
+    great: 5,
+    good: 4,
+    okay: 3,
+    bad: 2,
+    awful: 1,
+  };
+  if (this.mood && moodMap[this.mood]) {
+    this.moodScore = moodMap[this.mood];
   }
-  next();
 });
 
 const Journal = mongoose.model('Journal', journalSchema);

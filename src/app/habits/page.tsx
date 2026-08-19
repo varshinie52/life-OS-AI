@@ -1,268 +1,554 @@
-"use client";
+'use client';
 
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Target, Calendar as CalendarIcon, Flame, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { 
+  Plus, 
+  Repeat, 
+  Flame, 
+  Check, 
+  Trash2, 
+  X, 
+  Loader2, 
+  CheckCircle2,
+  TrendingUp
+} from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
+import { useLifeOS } from '@/context/LifeOSContext';
 import styles from './page.module.css';
-import { useHabits } from '@/hooks/useHabits';
-import { getToday, getDaysInMonth, MONTH_NAMES_SHORT, DAY_NAMES } from '@/lib/utils';
-import Modal from '@/components/ui/Modal';
-import { useAppContext } from '@/context/AppContext';
+
+const CATEGORIES = ['all', 'health', 'productivity', 'mindfulness', 'fitness', 'finance', 'learning', 'other'];
+const EMOJI_PRESETS = ['🎯', '💧', '📚', '🧘', '🏃', '💪', '💻', '🌅', '🍎', '🎨', '⚡', '🧠'];
+const COLOR_SWATCHES = ['#6B7F4E', '#1F3D2E', '#A2B5A0', '#DCC8A3', '#4C6A73', '#5A443A'];
 
 export default function HabitsPage() {
-  const { isMounted } = useAppContext();
-  const { habits, addHabit, toggleHabitCompletion, getHabitStats, deleteHabit } = useHabits();
-  const [currentDate, setCurrentDate] = useState(new Date());
-  
-  // Modal state
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newHabitName, setNewHabitName] = useState('');
-  const [newHabitIcon, setNewHabitIcon] = useState('🌟');
-  const [newHabitColor, setNewHabitColor] = useState('#008080');
+  const { showToast } = useToast();
+  const lifeOS = useLifeOS();
 
-  // Today string for comparisons
-  const todayStr = getToday();
+  const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
 
-  // Calendar logic
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-  const daysInMonth = useMemo(() => getDaysInMonth(year, month), [year, month]);
-  
-  // We'll show the last 7 days including today in the main view for quick check-ins
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
+
+  // Form State
+  const [name, setName] = useState('');
+  const [category, setCategory] = useState<string>('productivity');
+  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'custom'>('daily');
+  const [icon, setIcon] = useState('🎯');
+  const [color, setColor] = useState('#6B7F4E');
+  const [submitting, setSubmitting] = useState(false);
+
   const last7Days = useMemo(() => {
     const days = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      days.push(d.toISOString().split('T')[0]);
+      const isoDate = d.toISOString().split('T')[0];
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+      const dayNum = d.getDate();
+      days.push({ isoDate, dayName, dayNum, isToday: i === 0 });
     }
     return days;
   }, []);
 
-  const handlePrevMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1));
+  const handleToggleHabit = async (habitId: string, dateStr?: string) => {
+    lifeOS.toggleHabitCompletion(habitId, dateStr);
+    showToast('Habit status updated! 🔥', 'success');
   };
 
-  const handleNextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1));
+  const handleOpenCreateModal = () => {
+    setModalMode('create');
+    setEditingHabitId(null);
+    setName('');
+    setCategory('productivity');
+    setFrequency('daily');
+    setIcon('🎯');
+    setColor('#6B7F4E');
+    setIsModalOpen(true);
   };
 
-  const handleAddHabit = (e: React.FormEvent) => {
+  const handleSaveHabit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newHabitName.trim()) {
-      addHabit(newHabitName, newHabitIcon, newHabitColor);
-      setNewHabitName('');
-      setIsAddModalOpen(false);
+    if (!name.trim()) {
+      showToast('Please enter a habit name', 'warning');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      if (modalMode === 'create') {
+        lifeOS.addHabit(name.trim(), icon, color, category, frequency);
+        showToast('Habit created! 🎉', 'success');
+      } else if (editingHabitId) {
+        lifeOS.updateHabit(editingHabitId, {
+          name: name.trim(),
+          icon,
+          color,
+        });
+        showToast('Habit updated!', 'success');
+      }
+      setIsModalOpen(false);
+    } catch {
+      showToast('Error saving habit', 'error');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  if (!isMounted) return null;
+  const handleDeleteHabit = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this habit?')) return;
+    lifeOS.deleteHabit(id);
+    showToast('Habit deleted', 'info');
+  };
+
+  const displayedHabits = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return lifeOS.habits
+      .map((h) => ({
+        ...h,
+        _id: h.id,
+        title: h.name,
+        category: 'productivity' as const,
+        frequency: 'daily' as const,
+        completedToday: h.completedDates.includes(today),
+        currentStreak: h.completedDates.length,
+      }))
+      .filter((h) => {
+        if (selectedCategory !== 'all' && h.category !== selectedCategory) return false;
+        if (search.trim()) {
+          const q = search.toLowerCase().trim();
+          return h.name.toLowerCase().includes(q);
+        }
+        return true;
+      });
+  }, [lifeOS.habits, selectedCategory, search]);
 
   return (
-    <main className={styles.main}>
-      <header className={styles.header}>
+    <div className={styles.container}>
+      {/* Header */}
+      <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Habit Tracker</h1>
-          <p className={styles.subtitle}>Consistency is the key to mastery.</p>
+          <p className={styles.subtitle}>Build routines, track streaks, and achieve daily mastery.</p>
         </div>
-        <button className="btn-primary" onClick={() => setIsAddModalOpen(true)}>
-          <Plus size={18} /> New Habit
-        </button>
-      </header>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <button
+            onClick={() => {
+              if (lifeOS.habits.length === 0) {
+                showToast('No habits to delete.', 'info');
+              } else {
+                setIsDeleteAllModalOpen(true);
+              }
+            }}
+            style={{
+              background: 'rgba(184, 91, 73, 0.1)',
+              color: '#B85B49',
+              border: '1px solid rgba(184, 91, 73, 0.3)',
+              padding: '0.6rem 1rem',
+              borderRadius: '12px',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              cursor: 'pointer',
+              opacity: lifeOS.habits.length === 0 ? 0.6 : 1,
+            }}
+            title="Delete All Habits"
+          >
+            <Trash2 size={16} /> Delete All
+          </button>
+          <button onClick={handleOpenCreateModal} className={styles.addBtn}>
+            <Plus size={18} /> New Habit
+          </button>
+        </div>
+      </div>
 
-      <div className={styles.grid}>
-        
-        {/* Main Check-in Table */}
-        <div className={styles.mainContent}>
-          <div className="glass-panel" style={{ padding: '24px', overflowX: 'auto' }}>
-            <div className={styles.tableHeader}>
-              <div className={styles.habitColumn}>Habit</div>
-              <div className={styles.daysContainer}>
-                {last7Days.map(dateStr => {
-                  const d = new Date(dateStr + 'T00:00:00');
-                  const isToday = dateStr === todayStr;
-                  return (
-                    <div key={dateStr} className={`${styles.dayHeader} ${isToday ? styles.todayHighlight : ''}`}>
-                      <span className={styles.dayName}>{DAY_NAMES[d.getDay()]}</span>
-                      <span className={styles.dayNumber}>{d.getDate()}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className={styles.habitList}>
-              {habits.map(habit => (
-                <div key={habit.id} className={styles.habitRow}>
-                  <div className={styles.habitInfo}>
-                    <div className={styles.habitIcon} style={{ background: `${habit.color}20`, color: habit.color }}>
-                      {habit.icon}
-                    </div>
-                    <span className={styles.habitName}>{habit.name}</span>
-                  </div>
-                  
-                  <div className={styles.daysContainer}>
-                    {last7Days.map(dateStr => {
-                      const isCompleted = habit.completedDates.includes(dateStr);
-                      const isToday = dateStr === todayStr;
-                      const isFuture = dateStr > todayStr;
-                      
-                      return (
-                        <div key={dateStr} className={styles.checkboxWrapper}>
-                          <button
-                            className={`${styles.checkbox} ${isCompleted ? styles.checked : ''}`}
-                            style={{ 
-                              borderColor: isCompleted ? habit.color : 'var(--border-subtle)',
-                              backgroundColor: isCompleted ? habit.color : 'transparent'
-                            }}
-                            onClick={() => !isFuture && toggleHabitCompletion(habit.id, dateStr)}
-                            disabled={isFuture}
-                          >
-                            {isCompleted && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}><CheckCircle size={14} color="#fff" /></motion.div>}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-              
-              {habits.length === 0 && (
-                <div className={styles.emptyState}>
-                  <Target size={48} className={styles.emptyIcon} />
-                  <p>No habits yet. Start building good routines today!</p>
-                </div>
-              )}
-            </div>
+      {/* Analytics Metric Cards Header */}
+      <div className={styles.analyticsGrid}>
+        <div className={styles.statCard}>
+          <div className={styles.statIcon} style={{ background: 'rgba(76, 106, 115, 0.15)', color: '#4C6A73' }}>
+            <Repeat size={22} />
           </div>
-
-          {/* Monthly Calendar View (Heatmap-style) */}
-          <div className="glass-panel" style={{ padding: '24px', marginTop: '24px' }}>
-            <div className={styles.calendarHeader}>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <CalendarIcon size={20} className="text-accent" /> 
-                Monthly Overview
-              </h3>
-              <div className={styles.monthControls}>
-                <button className={styles.iconBtn} onClick={handlePrevMonth}><ChevronLeft size={18} /></button>
-                <span className={styles.currentMonth}>{MONTH_NAMES_SHORT[month]} {year}</span>
-                <button className={styles.iconBtn} onClick={handleNextMonth} disabled={month >= new Date().getMonth() && year >= new Date().getFullYear()}><ChevronRight size={18} /></button>
-              </div>
-            </div>
-
-            <div className={styles.calendarGrid}>
-              {habits.map(habit => (
-                <div key={habit.id} className={styles.calendarHabitRow}>
-                  <div className={styles.calHabitName}>{habit.icon} {habit.name}</div>
-                  <div className={styles.calDays}>
-                    {daysInMonth.map(dateStr => {
-                      const isCompleted = habit.completedDates.includes(dateStr);
-                      const isFuture = dateStr > todayStr;
-                      return (
-                        <div 
-                          key={dateStr}
-                          className={styles.calDayBox}
-                          style={{
-                            background: isCompleted ? habit.color : 'var(--surface-solid)',
-                            opacity: isFuture ? 0.2 : (isCompleted ? 1 : 0.5),
-                            borderColor: isCompleted ? habit.color : 'var(--border-subtle)'
-                          }}
-                          title={`${dateStr}: ${isCompleted ? 'Completed' : 'Missed'}`}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div>
+            <div className={styles.statValue}>{lifeOS.metrics.habitsTotalToday}</div>
+            <div className={styles.statLabel}>Active Habits</div>
           </div>
         </div>
 
-        {/* Sidebar Stats */}
-        <div className={styles.sidebar}>
-          <div className="glass-panel" style={{ padding: '24px' }}>
-            <h3 className={styles.sidebarTitle}><Flame size={20} color="var(--color-warning)" /> Streak Stats</h3>
-            
-            <div className={styles.statsList}>
-              {habits.map(habit => {
-                const stats = getHabitStats(habit);
-                return (
-                  <div key={habit.id} className={styles.statCard}>
-                    <div className={styles.statHeader}>
-                      <span>{habit.icon} {habit.name}</span>
-                      <button className={styles.deleteBtn} onClick={() => deleteHabit(habit.id)}>×</button>
-                    </div>
-                    <div className={styles.statMetrics}>
-                      <div className={styles.metric}>
-                        <span className={styles.metricLabel}>Current</span>
-                        <span className={styles.metricValue}>{stats.currentStreak} <Flame size={14} color="var(--color-warning)"/></span>
-                      </div>
-                      <div className={styles.metric}>
-                        <span className={styles.metricLabel}>Best</span>
-                        <span className={styles.metricValue}>{stats.longestStreak} <Trophy size={14} color="var(--color-warning)"/></span>
-                      </div>
-                      <div className={styles.metric}>
-                        <span className={styles.metricLabel}>Rate</span>
-                        <span className={styles.metricValue}>{stats.completionRate}%</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+        <div className={styles.statCard}>
+          <div className={styles.statIcon} style={{ background: 'rgba(107, 127, 78, 0.15)', color: '#6B7F4E' }}>
+            <CheckCircle2 size={22} />
+          </div>
+          <div>
+            <div className={styles.statValue}>{lifeOS.metrics.habitsCompletedToday}</div>
+            <div className={styles.statLabel}>Completed Today</div>
+          </div>
+        </div>
+
+        <div className={styles.statCard}>
+          <div className={styles.statIcon} style={{ background: 'rgba(220, 200, 163, 0.25)', color: '#DCC8A3' }}>
+            <Flame size={22} />
+          </div>
+          <div>
+            <div className={styles.statValue}>{lifeOS.metrics.currentHabitStreak} Days</div>
+            <div className={styles.statLabel}>Best Streak</div>
+          </div>
+        </div>
+
+        <div className={styles.statCard}>
+          <div className={styles.statIcon} style={{ background: 'rgba(162, 181, 160, 0.15)', color: '#A2B5A0' }}>
+            <TrendingUp size={22} />
+          </div>
+          <div>
+            <div className={styles.statValue}>{lifeOS.metrics.habitCompletionRate}%</div>
+            <div className={styles.statLabel}>Today's Success Rate</div>
           </div>
         </div>
       </div>
 
-      {/* Add Habit Modal */}
-      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Create New Habit">
-        <form onSubmit={handleAddHabit} className={styles.form}>
-          <div>
-            <label className="label">Habit Name</label>
-            <input 
-              type="text" 
-              className="input-field" 
-              placeholder="e.g. Read 10 Pages, Drink Water..." 
-              value={newHabitName}
-              onChange={(e) => setNewHabitName(e.target.value)}
-              required
-              autoFocus
-            />
-          </div>
-          
-          <div className={styles.formRow}>
-            <div style={{ flex: 1 }}>
-              <label className="label">Emoji Icon</label>
-              <input 
-                type="text" 
-                className="input-field" 
-                value={newHabitIcon}
-                onChange={(e) => setNewHabitIcon(e.target.value)}
-                maxLength={2}
-                required
-              />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label className="label">Color</label>
-              <input 
-                type="color" 
-                className={styles.colorPicker} 
-                value={newHabitColor}
-                onChange={(e) => setNewHabitColor(e.target.value)}
-              />
-            </div>
-          </div>
+      {/* Toolbar: Category Filter Tabs, Search & Sort */}
+      <div className={styles.toolbar}>
+        <div className={styles.categories}>
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              className={`${styles.categoryTab} ${selectedCategory === cat ? styles.categoryTabActive : ''}`}
+              onClick={() => setSelectedCategory(cat)}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
 
-          <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: '16px' }}>
-            Create Habit
-          </button>
-        </form>
-      </Modal>
+        <div className={styles.controls}>
+          <input
+            type="text"
+            placeholder="Search habits..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className={styles.searchInput}
+          />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className={styles.selectInput}
+          >
+            <option value="newest">Sort: Newest</option>
+            <option value="alphabetical">Sort: A-Z</option>
+            <option value="streak">Sort: Highest Streak</option>
+          </select>
+        </div>
+      </div>
 
-    </main>
+      {/* Habits Table / List */}
+      <div className={styles.tableCard}>
+        <div className={styles.tableHeader}>
+          <div>Habit</div>
+          <div className={styles.daysRow}>
+            {last7Days.map((d) => (
+              <div key={d.isoDate} className={styles.dayCol}>
+                <span className={styles.dayName}>{d.dayName}</span>
+                <span className={`${styles.dayNum} ${d.isToday ? styles.dayToday : ''}`}>{d.dayNum}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ textAlign: 'center' }}>Streak</div>
+          <div style={{ textAlign: 'right' }}>Actions</div>
+        </div>
+
+        {displayedHabits.length > 0 ? (
+          displayedHabits.map((habit) => {
+            const hId = habit._id || habit.id;
+            return (
+              <div key={hId} className={styles.habitRow}>
+                <div className={styles.habitInfo}>
+                  <div
+                    className={styles.habitIconWrapper}
+                    style={{ backgroundColor: `${habit.color}20`, color: habit.color }}
+                  >
+                    {habit.icon}
+                  </div>
+                  <div>
+                    <h3 className={styles.habitTitle}>{habit.name || habit.title}</h3>
+                    <span className={styles.habitCategory}>{habit.category} • {habit.frequency}</span>
+                  </div>
+                </div>
+
+                <div className={styles.daysRow}>
+                  {last7Days.map((d) => {
+                    const isChecked = habit.completedDates.includes(d.isoDate);
+                    return (
+                      <button
+                        key={d.isoDate}
+                        className={`${styles.checkinBtn} ${isChecked ? styles.checkinBtnChecked : ''}`}
+                        style={{
+                          backgroundColor: isChecked ? (habit.color || '#6B7F4E') : 'transparent',
+                          borderColor: isChecked ? (habit.color || '#6B7F4E') : 'var(--border-color, #C8C0B0)',
+                        }}
+                        onClick={() => hId && handleToggleHabit(hId, d.isoDate)}
+                        title={`Check in for ${d.dayName}`}
+                      >
+                        {isChecked && <Check size={16} color="#ffffff" strokeWidth={3} />}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{ textAlign: 'center' }}>
+                  <div className={styles.streakBadge} style={{ justifyContent: 'center' }}>
+                    <Flame size={16} fill="var(--moss)" color="var(--moss)" /> {habit.currentStreak || 0}
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right' }}>
+                  <button
+                    onClick={() => hId && handleDeleteHabit(hId)}
+                    className={styles.actionBtn}
+                    title="Delete habit"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className={styles.emptyState}>
+            <Repeat size={44} style={{ opacity: 0.4, marginBottom: '12px' }} />
+            <h3 style={{ margin: '0 0 4px', fontSize: '1.1rem' }}>No habits found</h3>
+            <p style={{ margin: 0, fontSize: '0.9rem' }}>
+              Get started by creating your first daily habit.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Add / Edit Habit Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <motion.div
+            className={styles.modalBackdrop}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className={styles.modalContent}
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+            >
+              <div className={styles.modalHeader}>
+                <h2 className={styles.modalTitle}>
+                  {modalMode === 'create' ? 'Create New Habit' : 'Edit Habit'}
+                </h2>
+                <button onClick={() => setIsModalOpen(false)} className={styles.closeBtn}>
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveHabit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'block', marginBottom: '6px' }}>
+                    Habit Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Read 20 pages, Drink Water..."
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem 1rem',
+                      background: 'var(--surface-solid)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '12px',
+                      color: 'var(--text-primary)',
+                      outline: 'none',
+                    }}
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'block', marginBottom: '6px' }}>
+                    Category
+                  </label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem 1rem',
+                      background: 'var(--surface-solid)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '12px',
+                      color: 'var(--text-primary)',
+                      outline: 'none',
+                      textTransform: 'capitalize',
+                    }}
+                  >
+                    {CATEGORIES.filter((c) => c !== 'all').map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'block', marginBottom: '6px' }}>
+                    Emoji Icon
+                  </label>
+                  <div className={styles.emojiGrid}>
+                    {EMOJI_PRESETS.map((e) => (
+                      <button
+                        key={e}
+                        type="button"
+                        className={`${styles.emojiBtn} ${icon === e ? styles.emojiBtnSelected : ''}`}
+                        onClick={() => setIcon(e)}
+                      >
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500, display: 'block', marginBottom: '6px' }}>
+                    Color Accent
+                  </label>
+                  <div className={styles.colorSwatches}>
+                    {COLOR_SWATCHES.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        className={`${styles.swatch} ${color === c ? styles.swatchSelected : ''}`}
+                        style={{ backgroundColor: c }}
+                        onClick={() => setColor(c)}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid var(--border-subtle)',
+                      color: 'var(--text-secondary)',
+                      padding: '0.75rem 1.25rem',
+                      borderRadius: '12px',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    style={{
+                      background: 'var(--moss)',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '0.75rem 1.75rem',
+                      borderRadius: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                    }}
+                  >
+                    {submitting ? <Loader2 className={styles.spinning} size={18} /> : 'Save Habit'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Confirm Delete All Habits Modal */}
+      <AnimatePresence>
+        {isDeleteAllModalOpen && (
+          <motion.div
+            className={styles.modalBackdrop}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className={styles.modalContent}
+              style={{ maxWidth: '440px', padding: '1.75rem' }}
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+            >
+              <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(184, 91, 73, 0.15)', color: '#B85B49', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                  <Trash2 size={24} />
+                </div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 6px 0', color: 'var(--text-primary)' }}>
+                  Delete all habits?
+                </h2>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
+                  This will permanently remove all habits from this LifeOS account. Tasks, notes, journal entries, and calendar events will remain untouched.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteAllModalOpen(false)}
+                  style={{
+                    flex: 1,
+                    background: 'transparent',
+                    border: '1px solid var(--border-subtle)',
+                    color: 'var(--text-secondary)',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    lifeOS.clearSectionData('habits');
+                    setIsDeleteAllModalOpen(false);
+                    showToast('All habits deleted', 'info');
+                  }}
+                  style={{
+                    flex: 1,
+                    background: '#B85B49',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Delete All
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
-
-const CheckCircle = ({ size, color }: { size: number, color: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-);

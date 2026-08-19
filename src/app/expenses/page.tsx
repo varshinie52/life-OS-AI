@@ -11,12 +11,14 @@ import Modal from '@/components/ui/Modal';
 import { useAppContext } from '@/context/AppContext';
 
 const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
-  food: '#3B82F6',
-  transport: '#F59E0B',
-  entertainment: '#8B5CF6',
-  shopping: '#EC4899',
-  bills: '#EF4444',
-  other: '#6B7280'
+  food: '#6B7F4E',
+  transport: '#4C6A73',
+  entertainment: '#DCC8A3',
+  shopping: '#A2B5A0',
+  bills: '#5A443A',
+  health: '#1F3D2E',
+  education: '#6B7F4E',
+  other: '#4C6A73'
 };
 
 export default function ExpensesPage() {

@@ -6,12 +6,14 @@ const { protect } = require('../../middleware/auth.middleware');
 
 const router = express.Router();
 
+// All habit routes require authentication
 router.use(protect);
 
 router.post(
   '/',
   [
-    check('name', 'Name is required').not().isEmpty(),
+    check('title').optional(),
+    check('name').optional(),
     check('frequency').optional().isIn(['daily', 'weekly', 'custom']),
   ],
   validate,
@@ -19,7 +21,17 @@ router.post(
 );
 
 router.get('/', habitController.getHabits);
+router.get('/analytics', habitController.getHabitAnalytics);
 router.get('/:id', habitController.getHabitById);
+
+router.patch(
+  '/:id',
+  [
+    check('frequency').optional().isIn(['daily', 'weekly', 'custom']),
+  ],
+  validate,
+  habitController.updateHabit
+);
 
 router.put(
   '/:id',
@@ -31,6 +43,16 @@ router.put(
 );
 
 router.delete('/:id', habitController.deleteHabit);
+
+router.post(
+  '/:id/toggle',
+  [
+    check('date').optional().isISO8601(),
+    check('completed').optional().isBoolean(),
+  ],
+  validate,
+  habitController.toggleHabit
+);
 
 router.post(
   '/:id/checkin',

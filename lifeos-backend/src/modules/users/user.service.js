@@ -1,6 +1,7 @@
 const User = require('./user.model');
 const ApiError = require('../../utils/ApiError');
 const cloudinary = require('../../config/cloudinary');
+const { env } = require('../../config/env');
 
 const getProfile = async (userId) => {
   const user = await User.findById(userId);
@@ -51,9 +52,24 @@ const updatePreferences = async (userId, preferencesData) => {
 const uploadAvatar = async (userId, fileBuffer) => {
   const user = await User.findById(userId);
   
-  if (user.avatar?.publicId) {
+  if (!env.CLOUDINARY_CLOUD_NAME || !env.CLOUDINARY_API_KEY) {
+    // If Cloudinary isn't configured, use data URI fallback
+    const base64Image = fileBuffer.toString('base64');
+    user.avatar = {
+      url: `data:image/jpeg;base64,${base64Image}`,
+      publicId: `local_${userId}_${Date.now()}`
+    };
+    await user.save({ validateBeforeSave: false });
+    return user;
+  }
+
+  if (user.avatar?.publicId && !user.avatar.publicId.startsWith('local_')) {
     // Delete old avatar from Cloudinary first
-    await cloudinary.uploader.destroy(user.avatar.publicId);
+    try {
+      await cloudinary.uploader.destroy(user.avatar.publicId);
+    } catch (e) {
+      // Ignore cleanup error
+    }
   }
 
   // Upload to Cloudinary using streams (since we have a buffer in memory)

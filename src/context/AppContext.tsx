@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { DEFAULT_SETTINGS, UserSettings } from '../lib/utils';
+import { DEFAULT_SETTINGS } from '../lib/utils';
+import { UserSettings } from '../lib/types';
 
 interface AppContextType {
   settings: UserSettings;

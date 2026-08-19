@@ -11,18 +11,40 @@ const router = express.Router();
 router.use(protect);
 
 router.get('/profile', userController.getProfile);
+router.get('/me', userController.getProfile);
 
 router.put(
   '/profile',
   [
     check('name', 'Name is required').optional().not().isEmpty(),
-    check('username', 'Username is required').optional().not().isEmpty(),
+    check('username', 'Username cannot be empty').optional().not().isEmpty(),
+  ],
+  validate,
+  userController.updateProfile
+);
+
+router.patch(
+  '/profile',
+  [
+    check('name', 'Name is required').optional().not().isEmpty(),
+    check('username', 'Username cannot be empty').optional().not().isEmpty(),
+  ],
+  validate,
+  userController.updateProfile
+);
+
+router.patch(
+  '/me',
+  [
+    check('name', 'Name is required').optional().not().isEmpty(),
+    check('username', 'Username cannot be empty').optional().not().isEmpty(),
   ],
   validate,
   userController.updateProfile
 );
 
 router.put('/preferences', userController.updatePreferences);
+router.patch('/preferences', userController.updatePreferences);
 
 // Upload Avatar (single file named 'avatar')
 router.post('/avatar', upload.single('avatar'), userController.uploadAvatar);

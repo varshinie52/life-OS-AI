@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const ApiError = require('../utils/ApiError');
 
 const errorHandler = (err, req, res, next) => {
@@ -11,7 +12,7 @@ const errorHandler = (err, req, res, next) => {
 
   // Handle Mongoose duplicate key error
   if (err.code === 11000) {
-    const message = `Duplicate field value entered`;
+    const message = 'This email is already registered. Please use another email or log in.';
     error = new ApiError(400, message);
   }
 

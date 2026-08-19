@@ -1,18 +1,47 @@
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  /* Core Palette - Warm Beige OS Theme */
-  --bg-primary: #F6F2EA;
-  --sidebar-bg: #EFE8DC;
-  --surface-solid: #FFFDF8;
-  --border-subtle: #E6DED2;
-  
-  --text-primary: #202020;
-  --text-secondary: #787878;
-  --text-muted: #A09A90; /* Adapted for beige */
-  
-  --accent-primary: #0F8B8D;
-  --hover-bg: #F4EEE5;
+  /* Exact Nature-Inspired Color Palette */
+  --forest: #1F3D2E;
+  --moss: #6B7F4E;
+  --sage: #A2B5A0;
+  --sand: #DCC8A3;
+  --river: #4C6A73;
+  --earth: #5A443A;
+  --teal: #008C8C;
+
+  --forest-rgb: 31, 61, 46;
+  --moss-rgb: 107, 127, 78;
+  --sage-rgb: 162, 181, 160;
+  --sand-rgb: 220, 200, 163;
+  --river-rgb: 76, 106, 115;
+  --earth-rgb: 90, 68, 58;
+  --teal-rgb: 0, 140, 140;
+
+  /* Core Palette Mapping - Soft Warm Sand Beige Hierarchy */
+  --bg-primary: #F3EBDD; /* Main app background: light warm beige derived from #DCC8A3 */
+  --sidebar-bg: #008C8C; /* Sidebar: Teal */
+  --surface-solid: #FAF5EC; /* Cards / panels: slightly lighter warm beige */
+  --surface-card: #FAF5EC;
+  --surface-card-warm: #EBDCBF; /* Accent card surface */
+  --surface-glass: rgba(250, 245, 236, 0.92);
+
+  --border-subtle: rgba(220, 200, 163, 0.45);
+  --border-color: rgba(90, 68, 58, 0.18);
+  --border-earth: rgba(90, 68, 58, 0.3);
+  --border-active: #008C8C;
+
+  --text-primary: #2B231D; /* Deep warm brown-black for contrast on beige */
+  --text-secondary: #5A443A; /* Earth brown */
+  --text-muted: #7A685A;
+  --text-dark: #1F3D2E;
+  --text-earth: #8C6F56;
+
+  --accent-primary: #008C8C; /* Teal primary accent */
+  --accent-secondary: #A2B5A0; /* Sage Mist secondary surfaces */
+  --accent-warm: #DCC8A3; /* Sand Beige highlight */
+  --accent-forest: #1F3D2E;
+  --hover-bg: rgba(220, 200, 163, 0.25);
 
   /* Utilities */
   --radius-sm: 8px;
@@ -21,38 +50,60 @@
   --radius-xl: 32px;
   --radius-card: 28px;
   --radius-full: 9999px;
-  
-  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.05);
-  --shadow-hover: 0 14px 40px rgba(0, 0, 0, 0.08);
-  
+
+  --shadow-soft: 0 4px 20px rgba(90, 68, 58, 0.08);
+  --shadow-hover: 0 8px 30px rgba(90, 68, 58, 0.14);
+  --shadow-inner: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+
   --font-heading: 'Instrument Serif', serif;
   --font-body: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  
+
   /* Status Colors */
-  --color-success: #16A34A;
-  --color-warning: #F59E0B;
-  --color-error: #EF4444;
-  --color-info: #3B82F6;
+  --color-success: #6B7F4E;
+  --color-warning: #DCC8A3;
+  --color-error: #B85B49;
+  --color-info: #008C8C;
 }
 
-/* Dark theme overrides (simplified or removed for this specific warm aesthetic request, 
-   but preserved structure if user toggles) */
-[data-theme='dark'] {
-  --bg-primary: #121212; 
-  --sidebar-bg: #1A1A1A;
-  --surface-solid: #242424;
-  --border-subtle: #333333;
-  --text-primary: #F0F0F0;
-  --text-secondary: #A0A0A0;
-  --hover-bg: #2A2A2A;
-  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.4);
+[data-theme='light'] {
+  --bg-primary: #F3EBDD; /* Main app background: light warm beige derived from #DCC8A3 */
+  --sidebar-bg: #008C8C; /* Sidebar: Teal */
+  --surface-solid: #FAF5EC; /* Cards / panels: slightly lighter warm beige */
+  --surface-card: #FAF5EC;
+  --surface-card-warm: #EBDCBF;
+  --surface-glass: rgba(250, 245, 236, 0.92);
+
+  --border-subtle: rgba(220, 200, 163, 0.45);
+  --border-color: rgba(90, 68, 58, 0.18);
+  --border-earth: rgba(90, 68, 58, 0.3);
+  --border-active: #008C8C;
+
+  --text-primary: #2B231D;
+  --text-secondary: #5A443A;
+  --text-muted: #7A685A;
+  --text-dark: #1F3D2E;
+  --text-earth: #8C6F56;
+
+  --accent-primary: #008C8C;
+  --accent-secondary: #A2B5A0;
+  --accent-warm: #DCC8A3;
+  --accent-forest: #1F3D2E;
+  --hover-bg: rgba(220, 200, 163, 0.25);
+
+  --shadow-soft: 0 4px 20px rgba(90, 68, 58, 0.08);
+  --shadow-hover: 0 8px 30px rgba(90, 68, 58, 0.14);
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+html, body {
+  width: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -63,7 +114,6 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -109,7 +159,7 @@ input, textarea, select {
   border-radius: var(--radius-full);
   font-weight: 500;
   font-size: 0.95rem;
-  box-shadow: 0 4px 12px rgba(15, 139, 141, 0.2);
+  box-shadow: 0 4px 12px rgba(107, 127, 78, 0.25);
   transition: all 250ms cubic-bezier(.22,.61,.36,1);
   display: inline-flex;
   align-items: center;
@@ -119,7 +169,8 @@ input, textarea, select {
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(15, 139, 141, 0.3);
+  box-shadow: 0 6px 16px rgba(107, 127, 78, 0.35);
+  filter: brightness(1.05);
 }
 
 .btn-secondary {
@@ -155,8 +206,8 @@ input, textarea, select {
 
 .input-field:focus {
   outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(15, 139, 141, 0.15);
+  border-color: var(--moss);
+  box-shadow: 0 0 0 3px rgba(107, 127, 78, 0.2);
 }
 
 .input-field::placeholder {
@@ -175,6 +226,8 @@ input, textarea, select {
 .app-shell {
   display: flex;
   min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .main-content {
@@ -184,7 +237,17 @@ input, textarea, select {
   margin-top: 16px;
   display: flex;
   flex-direction: column;
+  min-width: 0; /* Prevents flex child overflow */
   max-width: calc(100vw - 128px);
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 16px;
+    margin-right: 16px;
+    margin-top: 76px;
+    max-width: calc(100vw - 32px);
+  }
 }
 
 /* Hide scrollbar but keep functionality */
@@ -205,3 +268,9 @@ input, textarea, select {
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+

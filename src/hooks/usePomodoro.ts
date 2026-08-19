@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useLocalStorage } from './useLocalStorage';
 import { PomodoroSession } from '@/lib/types';
 import { generateId } from '@/lib/utils';

@@ -19,34 +19,32 @@ const login = asyncHandler(async (req, res) => {
   res.cookie('jwt', result.refreshToken, {
     httpOnly: true,
     secure: env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: env.NODE_ENV === 'production' ? 'strict' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 
   res.status(200).json(new ApiResponse(200, {
     user: result.user,
     accessToken: result.accessToken,
-  }, 'Login successful'));
+  }, 'Login successful! 🎉'));
 });
 
 const logout = asyncHandler(async (req, res) => {
-  // Clear refresh token from DB if user is authenticated
   if (req.user) {
     await authService.logout(req.user._id);
   }
 
-  // Clear cookie
   res.cookie('jwt', 'loggedout', {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,
+    sameSite: env.NODE_ENV === 'production' ? 'strict' : 'lax',
   });
 
   res.status(200).json(new ApiResponse(200, null, 'Logged out successfully'));
 });
 
 const refreshToken = asyncHandler(async (req, res) => {
-  // Can get refresh token from body or cookie
-  const token = req.cookies?.jwt || req.body.refreshToken;
+  const token = req.cookies?.jwt || req.body?.refreshToken;
 
   if (!token) {
     throw new ApiError(401, 'Not authenticated. No refresh token provided.');
@@ -65,7 +63,6 @@ const refreshToken = asyncHandler(async (req, res) => {
     throw new ApiError(403, 'Refresh token has expired or is invalid. Please login again.');
   }
 
-  // Generate new tokens
   const { generateAccessToken, generateRefreshToken } = require('../../utils/generateToken');
   const newAccessToken = generateAccessToken(user._id);
   const newRefreshToken = generateRefreshToken(user._id);
@@ -76,26 +73,28 @@ const refreshToken = asyncHandler(async (req, res) => {
   res.cookie('jwt', newRefreshToken, {
     httpOnly: true,
     secure: env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: env.NODE_ENV === 'production' ? 'strict' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
   res.status(200).json(new ApiResponse(200, { accessToken: newAccessToken }, 'Token refreshed successfully'));
 });
 
-const verifyEmail = asyncHandler(async (req, res) => {
-  await authService.verifyEmail(req.params.token);
-  res.status(200).json(new ApiResponse(200, null, 'Email verified successfully'));
+const forgotPassword = asyncHandler(async (req, res) => {
+  const result = await authService.forgotPassword(req.body.email);
+  res.status(200).json(new ApiResponse(200, null, result.message));
 });
 
-const forgotPassword = asyncHandler(async (req, res) => {
-  await authService.forgotPassword(req.body.email);
-  res.status(200).json(new ApiResponse(200, null, 'Password reset token sent to email!'));
+const verifyOtp = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+  const result = await authService.verifyOtp(email, otp);
+  res.status(200).json(new ApiResponse(200, null, result.message));
 });
 
 const resetPassword = asyncHandler(async (req, res) => {
-  await authService.resetPassword(req.params.token, req.body.password);
-  res.status(200).json(new ApiResponse(200, null, 'Password reset successful! Please login with your new password.'));
+  const { email, otp, password } = req.body;
+  const result = await authService.resetPassword(email, otp, password);
+  res.status(200).json(new ApiResponse(200, null, result.message));
 });
 
 const changePassword = asyncHandler(async (req, res) => {
@@ -106,9 +105,8 @@ const changePassword = asyncHandler(async (req, res) => {
   }
 
   user.password = req.body.newPassword;
-  await user.save(); // pre save hook hashes the new password
+  await user.save();
 
-  // Generate new tokens to keep user logged in
   const { generateAccessToken, generateRefreshToken } = require('../../utils/generateToken');
   const newAccessToken = generateAccessToken(user._id);
   const newRefreshToken = generateRefreshToken(user._id);
@@ -130,14 +128,40 @@ const getMe = asyncHandler(async (req, res) => {
   res.status(200).json(new ApiResponse(200, { user: req.user }, 'Current user data fetched'));
 });
 
+const testEmail = asyncHandler(async (req, res) => {
+  const recipient = req.body.email || env.SMTP_USER;
+  if (!recipient) {
+    throw new ApiError(400, 'Please provide an email address in request body.');
+  }
+
+  const sendEmail = require('../../utils/sendEmail');
+  await sendEmail({
+    email: recipient,
+    subject: 'LifeOS Email Delivery Test',
+    message: 'LifeOS email delivery is working correctly.',
+    html: `
+      <div style="font-family: sans-serif; padding: 30px; background: #f4f6f8;">
+        <div style="max-width: 500px; margin: auto; background: white; padding: 30px; border-radius: 16px; border: 1px solid #e5e7eb;">
+          <h2 style="color: #0F8B8D; margin-top: 0;">LifeOS Email Delivery Test</h2>
+          <p style="color: #374151; font-size: 16px;">LifeOS email delivery is working correctly.</p>
+          <p style="color: #6b7280; font-size: 14px;">Dispatched at: ${new Date().toISOString()}</p>
+        </div>
+      </div>
+    `,
+  });
+
+  res.status(200).json(new ApiResponse(200, { recipient }, `Test email sent successfully to ${recipient}`));
+});
+
 module.exports = {
   register,
   login,
   logout,
   refreshToken,
-  verifyEmail,
   forgotPassword,
+  verifyOtp,
   resetPassword,
   changePassword,
   getMe,
+  testEmail,
 };

@@ -11,6 +11,7 @@ export interface Habit {
   color: string;         // hex color
   createdAt: string;     // ISO date
   completedDates: string[]; // ISO date strings (YYYY-MM-DD)
+  isDemo?: boolean;
 }
 
 export interface HabitStats {
@@ -35,6 +36,7 @@ export interface Task {
   dueDate: string | null;  // ISO date
   createdAt: string;
   completedAt: string | null;
+  isDemo?: boolean;
 }
 
 // ── Notes ──────────────────────────────────────────────────
@@ -49,6 +51,7 @@ export interface Note {
   tags: string[];
   createdAt: string;
   updatedAt: string;
+  isDemo?: boolean;
 }
 
 // ── Journal ────────────────────────────────────────────────
@@ -58,11 +61,13 @@ export type Mood = '😄' | '😊' | '😐' | '😔' | '😢';
 export interface JournalEntry {
   id: string;
   date: string;           // YYYY-MM-DD (one per day)
+  title?: string;
   mood: Mood;
   content: string;
   gratitude: string[];
   createdAt: string;
   updatedAt: string;
+  isDemo?: boolean;
 }
 
 // ── Calendar ───────────────────────────────────────────────
@@ -76,6 +81,7 @@ export interface CalendarEvent {
   endTime: string;         // HH:mm
   color: string;
   createdAt: string;
+  isDemo?: boolean;
 }
 
 // ── Goals ──────────────────────────────────────────────────
@@ -132,10 +138,13 @@ export interface PomodoroSession {
 
 // ── Settings ───────────────────────────────────────────────
 
+export type Theme = 'dark' | 'light' | 'system';
+export type Currency = '₹' | '$' | '€' | '£' | '¥';
+
 export interface UserSettings {
   userName: string;
-  theme: 'dark' | 'light';
-  currency: '₹' | '$' | '€' | '£';
+  theme: Theme;
+  currency: Currency;
   pomodoroWork: number;      // minutes
   pomodoroShortBreak: number;
   pomodoroLongBreak: number;

@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: lifeos-frontend
+    runtime: node
+    repo: https://github.com/varshinie52/life-OS-AI
+    branch: master
+    rootDir: .
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    plan: free
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://life-os-ai-a8al.onrender.com/api/v1

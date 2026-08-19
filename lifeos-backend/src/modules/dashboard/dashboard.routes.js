@@ -7,5 +7,6 @@ const router = express.Router();
 router.use(protect);
 
 router.get('/', dashboardController.getDashboard);
+router.get('/summary', dashboardController.getDashboard);
 
 module.exports = router;

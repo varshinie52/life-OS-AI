@@ -12,16 +12,54 @@ export function getToday(): string {
   return new Date().toISOString().split('T')[0];
 }
 
+/** Safe date formatting helper to guarantee NO 'Invalid Date' output */
+export function safeFormatDate(
+  dateInput: string | number | Date | null | undefined,
+  fallback = 'No date',
+  options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' }
+): string {
+  if (!dateInput) return fallback;
+  try {
+    let dateObj: Date;
+    if (dateInput instanceof Date) {
+      dateObj = dateInput;
+    } else if (typeof dateInput === 'number') {
+      dateObj = new Date(dateInput);
+    } else if (typeof dateInput === 'string') {
+      const trimmed = dateInput.trim();
+      if (!trimmed) return fallback;
+      
+      // Check for YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        const [y, m, d] = trimmed.split('-').map(Number);
+        dateObj = new Date(y, m - 1, d);
+      } else if (/^\d{2}:\d{2}/.test(trimmed)) {
+        // Pure time string like "09:00"
+        return formatTime12h(trimmed);
+      } else {
+        dateObj = new Date(trimmed);
+      }
+    } else {
+      return fallback;
+    }
+
+    if (isNaN(dateObj.getTime())) {
+      return fallback;
+    }
+    return dateObj.toLocaleDateString('en-US', options);
+  } catch {
+    return fallback;
+  }
+}
+
 /** Format date to readable string */
-export function formatDate(dateStr: string): string {
-  const date = new Date(dateStr + 'T00:00:00');
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+export function formatDate(dateStr: string | null | undefined): string {
+  return safeFormatDate(dateStr, 'No date', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 /** Format date to short string */
-export function formatDateShort(dateStr: string): string {
-  const date = new Date(dateStr + 'T00:00:00');
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+export function formatDateShort(dateStr: string | null | undefined): string {
+  return safeFormatDate(dateStr, 'No date', { month: 'short', day: 'numeric' });
 }
 
 /** Get time-based greeting */
@@ -32,12 +70,31 @@ export function getGreeting(): string {
   return 'Good Evening';
 }
 
-/** Format time (HH:mm) to 12h */
-export function formatTime12h(time: string): string {
-  const [h, m] = time.split(':').map(Number);
-  const period = h >= 12 ? 'PM' : 'AM';
-  const hour12 = h % 12 || 12;
-  return `${hour12}:${m.toString().padStart(2, '0')} ${period}`;
+/** Format time (HH:mm or ISO) safely to 12h */
+export function formatTime12h(timeInput: string | null | undefined): string {
+  if (!timeInput) return 'No time';
+  try {
+    const trimmed = timeInput.trim();
+    if (trimmed.includes('T')) {
+      const d = new Date(trimmed);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+    }
+    if (trimmed.includes(':')) {
+      const parts = trimmed.split(':');
+      const h = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      if (!isNaN(h) && !isNaN(m)) {
+        const period = h >= 12 ? 'PM' : 'AM';
+        const hour12 = h % 12 || 12;
+        return `${hour12}:${m.toString().padStart(2, '0')} ${period}`;
+      }
+    }
+    return trimmed;
+  } catch {
+    return 'No time';
+  }
 }
 
 /** Calculate streak from array of date strings */
@@ -177,11 +234,13 @@ export const EXPENSE_CATEGORIES: Record<string, { icon: string; color: string }>
   other: { icon: '📦', color: '#6b7280' },
 };
 
+import { Theme, Currency } from './types';
+
 /** Default user settings */
 export const DEFAULT_SETTINGS = {
   userName: 'User',
-  theme: 'dark' as const,
-  currency: '₹' as const,
+  theme: 'dark' as Theme,
+  currency: '₹' as Currency,
   pomodoroWork: 25,
   pomodoroShortBreak: 5,
   pomodoroLongBreak: 15,

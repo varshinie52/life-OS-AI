@@ -1,148 +1,251 @@
 const mongoose = require('mongoose');
 const Task = require('../tasks/task.model');
 const { Habit, HabitLog } = require('../habits/habit.model');
-const Pomodoro = require('../pomodoro/pomodoro.model');
 const Journal = require('../journal/journal.model');
-const Goal = require('../goals/goal.model');
-const { Expense } = require('../expenses/expense.model');
+const Note = require('../notes/note.model');
+const Event = require('../calendar/event.model');
 
-// Helper to get start and end of day/week/month
-const getTimeWindow = (type) => {
-  const curr = new Date();
-  const start = new Date(curr);
-  const end = new Date(curr);
-  
-  if (type === 'day') {
-    start.setUTCHours(0, 0, 0, 0);
-  } else if (type === 'week') {
-    start.setDate(curr.getDate() - curr.getDay());
-    start.setUTCHours(0, 0, 0, 0);
-  } else if (type === 'month') {
-    start.setDate(1);
-    start.setUTCHours(0, 0, 0, 0);
-  } else if (type === 'year') {
-    start.setMonth(0, 1);
-    start.setUTCHours(0, 0, 0, 0);
-  }
-  end.setUTCHours(23, 59, 59, 999);
-  
-  return { start, end };
-};
+const getOverview = async (userId) => {
+  const now = new Date();
+  const startOfDay = new Date(now);
+  startOfDay.setUTCHours(0, 0, 0, 0);
 
-const getProductivityScore = async (userId) => {
-  const { start, end } = getTimeWindow('day');
-  
-  // Tasks
-  const tasksTotal = await Task.countDocuments({ userId, isArchived: false });
-  const tasksCompleted = await Task.countDocuments({ userId, status: 'done', completedAt: { $gte: start, $lte: end } });
-  
-  // Habits
-  const habitsTotal = await Habit.countDocuments({ userId, isArchived: false });
-  const habitsCompleted = await HabitLog.countDocuments({ userId, date: { $gte: start, $lte: end }, completed: true });
-  
-  // Focus
-  const focusStats = await Pomodoro.aggregate([
-    { $match: { userId: new mongoose.Types.ObjectId(userId), type: 'focus', startTime: { $gte: start, $lte: end }, completed: true } },
-    { $group: { _id: null, totalMinutes: { $sum: '$duration' } } }
+  const [
+    totalTasks,
+    completedTasks,
+    totalHabits,
+    habitsCompletedToday,
+    totalJournalEntries,
+    totalNotes,
+  ] = await Promise.all([
+    Task.countDocuments({ userId, isArchived: false }),
+    Task.countDocuments({ userId, isArchived: false, status: 'done' }),
+    Habit.countDocuments({ userId, isArchived: false }),
+    HabitLog.countDocuments({ userId, date: { $gte: startOfDay }, completed: true }),
+    Journal.countDocuments({ userId }),
+    Note.countDocuments({ userId, isArchived: false }),
   ]);
-  const focusMinutes = focusStats[0]?.totalMinutes || 0;
-  
-  // Journal
-  const journalEntries = await Journal.countDocuments({ userId, date: { $gte: start, $lte: end } });
-  
-  // Goals (average progress of active goals)
-  const goalsStats = await Goal.aggregate([
-    { $match: { userId: new mongoose.Types.ObjectId(userId), status: 'active' } },
-    { $group: { _id: null, avgProgress: { $avg: '$progress' } } }
-  ]);
-  const goalsProgress = goalsStats[0]?.avgProgress || 0;
 
-  // Formula
-  const taskScore = tasksTotal > 0 ? (tasksCompleted / tasksTotal) * 0.3 : 0;
-  const habitScore = habitsTotal > 0 ? (habitsCompleted / habitsTotal) * 0.3 : 0;
-  const focusScore = Math.min(1, focusMinutes / 240) * 0.2; // 240 = 4h target
-  const journalScore = (journalEntries > 0 ? 1 : 0) * 0.1;
-  const goalScore = (goalsProgress / 100) * 0.1;
+  const taskCompletionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const habitSuccessRate = totalHabits > 0 ? Math.round((habitsCompletedToday / totalHabits) * 100) : 0;
 
-  const score = Math.round((taskScore + habitScore + focusScore + journalScore + goalScore) * 100);
+  // Productivity score 0-100 formula
+  const score = Math.min(100, Math.round(taskCompletionRate * 0.5 + habitSuccessRate * 0.3 + (totalJournalEntries > 0 ? 20 : 0)));
 
   return {
-    score,
-    breakdown: {
-      tasksCompleted,
-      tasksTotal,
-      habitsCompleted,
-      habitsTotal,
-      focusMinutes,
-      journalEntries,
-      goalsProgress: Math.round(goalsProgress),
-    }
+    productivityScore: score,
+    totalTasks,
+    completedTasks,
+    taskCompletionRate,
+    totalHabits,
+    habitsCompletedToday,
+    habitSuccessRate,
+    totalJournalEntries,
+    totalNotes,
+  };
+};
+
+const getHabitsAnalytics = async (userId) => {
+  const now = new Date();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - 7);
+
+  const habits = await Habit.find({ userId, isArchived: false }).lean();
+  const logs = await HabitLog.find({
+    userId,
+    date: { $gte: startOfWeek },
+    completed: true,
+  }).lean();
+
+  const habitPerformance = habits.map((h) => {
+    const count = logs.filter((l) => l.habitId.toString() === h._id.toString()).length;
+    return {
+      id: h._id,
+      name: h.name || h.title,
+      icon: h.icon || '🎯',
+      color: h.color || '#0F8B8D',
+      streak: h.currentStreak || 0,
+      completionsPastWeek: count,
+    };
+  });
+
+  return {
+    totalHabits: habits.length,
+    performance: habitPerformance,
   };
 };
 
 const getTasksAnalytics = async (userId) => {
-  const stats = await Task.aggregate([
+  const statusBreakdown = await Task.aggregate([
     { $match: { userId: new mongoose.Types.ObjectId(userId), isArchived: false } },
-    { $group: {
-        _id: '$status',
-        count: { $sum: 1 }
-    }}
+    { $group: { _id: '$status', count: { $sum: 1 } } },
   ]);
 
-  const priorityStats = await Task.aggregate([
-    { $match: { userId: new mongoose.Types.ObjectId(userId), isArchived: false, status: { $ne: 'done' } } },
-    { $group: { _id: '$priority', count: { $sum: 1 } } }
+  const priorityBreakdown = await Task.aggregate([
+    { $match: { userId: new mongoose.Types.ObjectId(userId), isArchived: false } },
+    { $group: { _id: '$priority', count: { $sum: 1 } } },
   ]);
 
-  return { statusBreakdown: stats, pendingByPriority: priorityStats };
-};
+  // Last 7 days task completion curve
+  const last7Days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    d.setUTCHours(0, 0, 0, 0);
+    const endD = new Date(d);
+    endD.setUTCHours(23, 59, 59, 999);
 
-const getHabitsAnalytics = async (userId) => {
-  const { start, end } = getTimeWindow('week');
-  
-  const stats = await HabitLog.aggregate([
-    { $match: { userId: new mongoose.Types.ObjectId(userId), date: { $gte: start, $lte: end }, completed: true } },
-    { $group: {
-        _id: '$habitId',
-        completionsThisWeek: { $sum: 1 }
-    }}
-  ]);
-  
-  return stats;
-};
+    const count = await Task.countDocuments({
+      userId,
+      status: 'done',
+      completedAt: { $gte: d, $lte: endD },
+    });
 
-const getTimeReport = async (userId, timeframe) => {
-  const { start, end } = getTimeWindow(timeframe); // 'week', 'month', 'year'
-  
-  // Combine stats from tasks, focus, expenses
-  const focusStats = await Pomodoro.aggregate([
-    { $match: { userId: new mongoose.Types.ObjectId(userId), type: 'focus', startTime: { $gte: start, $lte: end }, completed: true } },
-    { $group: {
-        _id: { $dateToString: { format: "%Y-%m-%d", date: "$startTime" } },
-        minutes: { $sum: '$duration' }
-    }},
-    { $sort: { _id: 1 } }
-  ]);
-  
-  const expenseStats = await Expense.aggregate([
-    { $match: { userId: new mongoose.Types.ObjectId(userId), date: { $gte: start, $lte: end } } },
-    { $group: {
-        _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
-        amount: { $sum: '$amount' }
-    }},
-    { $sort: { _id: 1 } }
-  ]);
+    last7Days.push({
+      date: d.toLocaleDateString('en-US', { weekday: 'short' }),
+      completed: count,
+    });
+  }
 
   return {
-    timeframe,
-    focusTrend: focusStats,
-    spendingTrend: expenseStats
+    statusBreakdown: statusBreakdown.reduce((acc, curr) => ({ ...acc, [curr._id]: curr.count }), {}),
+    priorityBreakdown: priorityBreakdown.reduce((acc, curr) => ({ ...acc, [curr._id]: curr.count }), {}),
+    weeklyCompletionCurve: last7Days,
   };
 };
 
+const getJournalAnalytics = async (userId) => {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const entries = await Journal.find({
+    userId,
+    date: { $gte: thirtyDaysAgo },
+  })
+    .sort({ date: 1 })
+    .lean();
+
+  const moodTrend = entries.map((e) => ({
+    date: new Date(e.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    score: e.moodScore || 4,
+    mood: e.mood,
+  }));
+
+  const moodDistribution = await Journal.aggregate([
+    { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+    { $group: { _id: '$mood', count: { $sum: 1 } } },
+  ]);
+
+  return {
+    moodTrend,
+    moodDistribution: moodDistribution.reduce((acc, curr) => ({ ...acc, [curr._id]: curr.count }), {}),
+  };
+};
+
+const getProductivityAnalytics = async (userId, timeframe = '30') => {
+  const days = parseInt(timeframe) || 30;
+  const trend = [];
+
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    d.setUTCHours(0, 0, 0, 0);
+    const endD = new Date(d);
+    endD.setUTCHours(23, 59, 59, 999);
+
+    const [tasksCompleted, habitsCompleted, journalDone] = await Promise.all([
+      Task.countDocuments({ userId, status: 'done', completedAt: { $gte: d, $lte: endD } }),
+      HabitLog.countDocuments({ userId, date: { $gte: d, $lte: endD }, completed: true }),
+      Journal.countDocuments({ userId, date: { $gte: d, $lte: endD } }),
+    ]);
+
+    const dailyScore = Math.min(100, (tasksCompleted * 20) + (habitsCompleted * 15) + (journalDone * 25));
+
+    trend.push({
+      date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      score: dailyScore,
+      tasks: tasksCompleted,
+      habits: habitsCompleted,
+    });
+  }
+
+  return { timeframe: days, trend };
+};
+
+const getStreaksAnalytics = async (userId) => {
+  const habits = await Habit.find({ userId, isArchived: false }).lean();
+  const maxHabitStreak = habits.reduce((max, h) => Math.max(max, h.currentStreak || 0), 0);
+
+  // Journal streak
+  const journalEntries = await Journal.find({ userId }).select('date').sort({ date: -1 }).lean();
+  let journalStreak = 0;
+  if (journalEntries.length > 0) {
+    const datesSet = new Set(
+      journalEntries.map((e) => new Date(e.date).toISOString().split('T')[0])
+    );
+    let checkDate = new Date();
+    const todayStr = checkDate.toISOString().split('T')[0];
+    if (!datesSet.has(todayStr)) {
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+    while (true) {
+      const dStr = checkDate.toISOString().split('T')[0];
+      if (datesSet.has(dStr)) {
+        journalStreak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+  }
+
+  return {
+    bestHabitStreak: maxHabitStreak,
+    journalStreak,
+  };
+};
+
+const getHeatmapAnalytics = async (userId) => {
+  const oneYearAgo = new Date();
+  oneYearAgo.setDate(oneYearAgo.getDate() - 365);
+
+  const [taskLogs, habitLogs, journalLogs] = await Promise.all([
+    Task.find({ userId, status: 'done', completedAt: { $gte: oneYearAgo } }).select('completedAt').lean(),
+    HabitLog.find({ userId, date: { $gte: oneYearAgo }, completed: true }).select('date').lean(),
+    Journal.find({ userId, date: { $gte: oneYearAgo } }).select('date').lean(),
+  ]);
+
+  const activityMap = {};
+
+  const addDate = (dStr) => {
+    if (!dStr) return;
+    activityMap[dStr] = (activityMap[dStr] || 0) + 1;
+  };
+
+  taskLogs.forEach((t) => t.completedAt && addDate(new Date(t.completedAt).toISOString().split('T')[0]));
+  habitLogs.forEach((h) => h.date && addDate(new Date(h.date).toISOString().split('T')[0]));
+  journalLogs.forEach((j) => j.date && addDate(new Date(j.date).toISOString().split('T')[0]));
+
+  const heatmap = Object.keys(activityMap).map((date) => {
+    const count = activityMap[date];
+    let level = 0;
+    if (count > 0) level = 1;
+    if (count > 2) level = 2;
+    if (count > 4) level = 3;
+    if (count > 6) level = 4;
+    return { date, count, level };
+  });
+
+  return { heatmap };
+};
+
 module.exports = {
-  getProductivityScore,
-  getTasksAnalytics,
+  getOverview,
   getHabitsAnalytics,
-  getTimeReport,
+  getTasksAnalytics,
+  getJournalAnalytics,
+  getProductivityAnalytics,
+  getProductivityScore: getOverview,
+  getStreaksAnalytics,
+  getHeatmapAnalytics,
 };

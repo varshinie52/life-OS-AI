@@ -2,47 +2,120 @@ const Note = require('./note.model');
 const ApiError = require('../../utils/ApiError');
 
 const createNote = async (userId, noteData) => {
-  return await Note.create({ ...noteData, userId });
+  if (!noteData.title) {
+    throw new ApiError(400, 'Note title is required');
+  }
+
+  const note = await Note.create({
+    ...noteData,
+    userId,
+    folder: noteData.folder || 'General',
+  });
+
+  return note;
 };
 
 const getNotes = async (userId, queryOptions = {}) => {
-  const { pinned, archived, tag, search } = queryOptions;
+  const {
+    pinned,
+    archived = 'false',
+    folder,
+    tag,
+    color,
+    search,
+    sortBy = 'updatedAt',
+    order = 'desc',
+  } = queryOptions;
 
   const query = { userId };
 
-  if (pinned !== undefined) {
-    query.isPinned = pinned === 'true';
-  }
-  
-  // Default to non-archived unless specifically requested
-  if (archived !== undefined) {
-    query.isArchived = archived === 'true';
+  if (archived === 'true') {
+    query.isArchived = true;
   } else {
     query.isArchived = false;
+  }
+
+  if (pinned === 'true') {
+    query.isPinned = true;
+  } else if (pinned === 'false') {
+    query.isPinned = false;
+  }
+
+  if (folder && folder !== 'all' && folder !== 'All Notes') {
+    query.folder = folder;
   }
 
   if (tag) {
     query.tags = { $in: [tag] };
   }
 
-  if (search) {
-    query.$text = { $search: search };
+  if (color) {
+    query.color = color;
   }
 
-  let sort = { isPinned: -1, updatedAt: -1 };
-  if (search) {
-    sort = { score: { $meta: 'textScore' } };
+  if (search && search.trim()) {
+    query.$or = [
+      { title: { $regex: search.trim(), $options: 'i' } },
+      { content: { $regex: search.trim(), $options: 'i' } },
+      { tags: { $in: [new RegExp(search.trim(), 'i')] } },
+    ];
   }
 
-  return await Note.find(query).sort(sort);
+  const sortOrder = order === 'asc' ? 1 : -1;
+  const sort = { isPinned: -1 };
+  sort[sortBy] = sortOrder;
+
+  const notes = await Note.find(query).sort(sort).lean();
+
+  return notes.map(n => ({ ...n, id: n._id }));
+};
+
+const searchNotes = async (userId, searchQuery) => {
+  if (!searchQuery || !searchQuery.trim()) {
+    return await getNotes(userId);
+  }
+
+  const notes = await Note.find({
+    userId,
+    isArchived: false,
+    $or: [
+      { title: { $regex: searchQuery.trim(), $options: 'i' } },
+      { content: { $regex: searchQuery.trim(), $options: 'i' } },
+      { tags: { $in: [new RegExp(searchQuery.trim(), 'i')] } },
+    ],
+  }).sort({ isPinned: -1, updatedAt: -1 }).lean();
+
+  return notes.map(n => ({ ...n, id: n._id }));
+};
+
+const getFolders = async (userId) => {
+  const aggregateResult = await Note.aggregate([
+    { $match: { userId, isArchived: false } },
+    { $group: { _id: '$folder', count: { $sum: 1 } } },
+    { $sort: { _id: 1 } },
+  ]);
+
+  const totalNotes = await Note.countDocuments({ userId, isArchived: false });
+  const archivedNotes = await Note.countDocuments({ userId, isArchived: true });
+
+  const folders = aggregateResult.map(r => ({
+    name: r._id || 'General',
+    count: r.count,
+  }));
+
+  return {
+    totalNotes,
+    archivedNotes,
+    folders,
+  };
 };
 
 const getNoteById = async (userId, noteId) => {
-  const note = await Note.findOne({ _id: noteId, userId });
+  const note = await Note.findOne({ _id: noteId, userId }).lean();
   if (!note) {
     throw new ApiError(404, 'Note not found');
   }
-  return note;
+  return { ...note, id: note._id };
 };
 
 const updateNote = async (userId, noteId, updateData) => {
@@ -84,11 +157,10 @@ const toggleArchive = async (userId, noteId) => {
   }
 
   note.isArchived = !note.isArchived;
-  // If we archive, we probably want to unpin it
   if (note.isArchived) {
     note.isPinned = false;
   }
-  
+
   await note.save();
   return note;
 };
@@ -96,6 +168,8 @@ const toggleArchive = async (userId, noteId) => {
 module.exports = {
   createNote,
   getNotes,
+  searchNotes,
+  getFolders,
   getNoteById,
   updateNote,
   deleteNote,

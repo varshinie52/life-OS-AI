@@ -2,41 +2,48 @@ const analyticsService = require('./analytics.service');
 const asyncHandler = require('../../utils/asyncHandler');
 const ApiResponse = require('../../utils/ApiResponse');
 
-const getProductivityScore = asyncHandler(async (req, res) => {
-  const data = await analyticsService.getProductivityScore(req.user._id);
-  res.status(200).json(new ApiResponse(200, data, 'Productivity score fetched'));
-});
-
-const getTasksAnalytics = asyncHandler(async (req, res) => {
-  const data = await analyticsService.getTasksAnalytics(req.user._id);
-  res.status(200).json(new ApiResponse(200, data, 'Tasks analytics fetched'));
+const getOverview = asyncHandler(async (req, res) => {
+  const data = await analyticsService.getOverview(req.user._id);
+  res.status(200).json(new ApiResponse(200, { overview: data }, 'Analytics overview fetched successfully'));
 });
 
 const getHabitsAnalytics = asyncHandler(async (req, res) => {
   const data = await analyticsService.getHabitsAnalytics(req.user._id);
-  res.status(200).json(new ApiResponse(200, data, 'Habits analytics fetched'));
+  res.status(200).json(new ApiResponse(200, { habits: data }, 'Habits analytics fetched successfully'));
 });
 
-const getWeeklyReport = asyncHandler(async (req, res) => {
-  const data = await analyticsService.getTimeReport(req.user._id, 'week');
-  res.status(200).json(new ApiResponse(200, data, 'Weekly report fetched'));
+const getTasksAnalytics = asyncHandler(async (req, res) => {
+  const data = await analyticsService.getTasksAnalytics(req.user._id);
+  res.status(200).json(new ApiResponse(200, { tasks: data }, 'Tasks analytics fetched successfully'));
 });
 
-const getMonthlyReport = asyncHandler(async (req, res) => {
-  const data = await analyticsService.getTimeReport(req.user._id, 'month');
-  res.status(200).json(new ApiResponse(200, data, 'Monthly report fetched'));
+const getJournalAnalytics = asyncHandler(async (req, res) => {
+  const data = await analyticsService.getJournalAnalytics(req.user._id);
+  res.status(200).json(new ApiResponse(200, { journal: data }, 'Journal analytics fetched successfully'));
 });
 
-const getYearlyReport = asyncHandler(async (req, res) => {
-  const data = await analyticsService.getTimeReport(req.user._id, 'year');
-  res.status(200).json(new ApiResponse(200, data, 'Yearly report fetched'));
+const getProductivityAnalytics = asyncHandler(async (req, res) => {
+  const data = await analyticsService.getProductivityAnalytics(req.user._id, req.query.timeframe);
+  res.status(200).json(new ApiResponse(200, { productivity: data }, 'Productivity analytics fetched successfully'));
+});
+
+const getStreaksAnalytics = asyncHandler(async (req, res) => {
+  const data = await analyticsService.getStreaksAnalytics(req.user._id);
+  res.status(200).json(new ApiResponse(200, { streaks: data }, 'Streaks analytics fetched successfully'));
+});
+
+const getHeatmapAnalytics = asyncHandler(async (req, res) => {
+  const data = await analyticsService.getHeatmapAnalytics(req.user._id);
+  res.status(200).json(new ApiResponse(200, data, 'Heatmap analytics fetched successfully'));
 });
 
 module.exports = {
-  getProductivityScore,
-  getTasksAnalytics,
+  getOverview,
+  getProductivityScore: getOverview,
   getHabitsAnalytics,
-  getWeeklyReport,
-  getMonthlyReport,
-  getYearlyReport,
+  getTasksAnalytics,
+  getJournalAnalytics,
+  getProductivityAnalytics,
+  getStreaksAnalytics,
+  getHeatmapAnalytics,
 };

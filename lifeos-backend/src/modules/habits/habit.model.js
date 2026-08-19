@@ -17,6 +17,11 @@ const habitSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    category: {
+      type: String,
+      enum: ['health', 'productivity', 'mindfulness', 'fitness', 'finance', 'learning', 'other'],
+      default: 'productivity',
+    },
     frequency: {
       type: String,
       enum: ['daily', 'weekly', 'custom'],
@@ -29,8 +34,22 @@ const habitSchema = new mongoose.Schema(
         max: 6, // 0 = Sun
       },
     ],
-    color: String,
-    icon: String,
+    goal: {
+      type: Number,
+      default: 1,
+    },
+    unit: {
+      type: String,
+      default: 'times',
+    },
+    color: {
+      type: String,
+      default: '#0F8B8D',
+    },
+    icon: {
+      type: String,
+      default: '🎯',
+    },
     reminderTime: String, // HH:MM
     isArchived: {
       type: Boolean,
@@ -39,8 +58,15 @@ const habitSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
+
+// Virtual for title alias
+habitSchema.virtual('title').get(function () {
+  return this.name;
+});
 
 const habitLogSchema = new mongoose.Schema(
   {
