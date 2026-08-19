@@ -5,17 +5,27 @@ const { generateAccessToken, generateRefreshToken } = require('../../utils/gener
 const sendEmail = require('../../utils/sendEmail');
 const { env } = require('../../config/env');
 
+const isValidEmailString = (emailStr) => {
+  if (!emailStr || typeof emailStr !== 'string') return false;
+  return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(emailStr.trim());
+};
+
 const register = async (userData) => {
   const { name, email, password, username } = userData;
 
-  const existingUser = await User.findOne({ email });
+  const normalizedEmail = (email || '').trim().toLowerCase();
+  if (!isValidEmailString(normalizedEmail)) {
+    throw new ApiError(400, 'Please enter a valid email address.');
+  }
+
+  const existingUser = await User.findOne({ email: normalizedEmail });
   if (existingUser) {
     throw new ApiError(400, 'This email is already registered. Please use another email or log in.');
   }
 
-  const createData = { name, email, password, isEmailVerified: true };
+  const createData = { name: (name || '').trim(), email: normalizedEmail, password, isEmailVerified: true };
   if (username) {
-    createData.username = username;
+    createData.username = username.trim().toLowerCase();
   }
 
   const user = await User.create(createData);
@@ -53,11 +63,12 @@ const register = async (userData) => {
 };
 
 const login = async (email, password) => {
-  if (!email || !password) {
+  const normalizedEmail = (email || '').trim().toLowerCase();
+  if (!normalizedEmail || !isValidEmailString(normalizedEmail) || !password) {
     throw new ApiError(400, 'Invalid email or password.');
   }
 
-  const user = await User.findOne({ email }).select('+password');
+  const user = await User.findOne({ email: normalizedEmail }).select('+password');
   if (!user || !(await user.correctPassword(password, user.password))) {
     throw new ApiError(401, 'Invalid email or password.');
   }

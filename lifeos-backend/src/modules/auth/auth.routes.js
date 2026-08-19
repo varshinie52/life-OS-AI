@@ -7,6 +7,15 @@ const { authLimiter } = require('../../middleware/rateLimiter');
 
 const router = express.Router();
 
+const emailCheck = check('email')
+  .trim()
+  .custom((value) => {
+    if (!value || typeof value !== 'string' || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value.trim())) {
+      throw new Error('Please enter a valid email address');
+    }
+    return true;
+  });
+
 // Apply strict rate limiting to auth routes
 router.use(authLimiter);
 
@@ -14,7 +23,7 @@ router.post(
   '/register',
   [
     check('name', 'Name is required').not().isEmpty(),
-    check('email', 'Please include a valid email').isEmail(),
+    emailCheck,
     check('password', 'Password must be at least 8 characters').isLength({ min: 8 }),
   ],
   validate,
@@ -24,7 +33,7 @@ router.post(
 router.post(
   '/login',
   [
-    check('email', 'Please include a valid email').isEmail(),
+    emailCheck,
     check('password', 'Password is required').exists(),
   ],
   validate,
@@ -36,14 +45,14 @@ router.post('/refresh-token', authController.refreshToken);
 
 router.post(
   '/test-email',
-  [check('email', 'Please include a valid email').isEmail()],
+  [emailCheck],
   validate,
   authController.testEmail
 );
 
 router.post(
   '/forgot-password',
-  [check('email', 'Please include a valid email').isEmail()],
+  [emailCheck],
   validate,
   authController.forgotPassword
 );
@@ -51,7 +60,7 @@ router.post(
 router.post(
   '/verify-otp',
   [
-    check('email', 'Please include a valid email').isEmail(),
+    emailCheck,
     check('otp', 'OTP must be 6 digits').isLength({ min: 6, max: 6 }),
   ],
   validate,
@@ -61,7 +70,7 @@ router.post(
 router.post(
   '/reset-password',
   [
-    check('email', 'Please include a valid email').isEmail(),
+    emailCheck,
     check('otp', 'OTP must be 6 digits').isLength({ min: 6, max: 6 }),
     check('password', 'Password must be at least 8 characters').isLength({ min: 8 }),
   ],

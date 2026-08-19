@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, Mail, Lock, Eye, EyeOff, Loader2, Check } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
+import { isValidEmail } from '@/lib/validation';
 import styles from './page.module.css';
 
 export default function SignupPage() {
@@ -23,15 +24,14 @@ export default function SignupPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
+    const trimmedEmail = email.trim();
     const newErrors: Record<string, string> = {};
     if (!name.trim()) {
       newErrors.name = 'Name is required';
     }
     
-    if (!email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = 'Please enter a valid email';
+    if (!trimmedEmail || !isValidEmail(trimmedEmail)) {
+      newErrors.email = 'Please enter a valid email address';
     }
     
     if (!password || password.length < 8) {

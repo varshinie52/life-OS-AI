@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, KeyRound, ArrowLeft, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import styles from './page.module.css';
 import { useToast } from '@/context/ToastContext';
+import { isValidEmail } from '@/lib/validation';
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -39,11 +40,8 @@ export default function ForgotPasswordPage() {
   // Step 1: Send OTP
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
-      setErrors({ email: 'Please enter your email address' });
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !isValidEmail(trimmedEmail)) {
       setErrors({ email: 'Please enter a valid email address' });
       return;
     }

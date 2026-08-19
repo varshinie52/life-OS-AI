@@ -34,10 +34,12 @@ const logout = asyncHandler(async (req, res) => {
     await authService.logout(req.user._id);
   }
 
-  res.cookie('jwt', 'loggedout', {
-    expires: new Date(Date.now() + 10 * 1000),
+  res.cookie('jwt', '', {
+    expires: new Date(0),
+    maxAge: 0,
     httpOnly: true,
     sameSite: env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    secure: env.NODE_ENV === 'production',
   });
 
   res.status(200).json(new ApiResponse(200, null, 'Logged out successfully'));

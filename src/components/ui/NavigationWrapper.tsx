@@ -16,7 +16,9 @@ const AIChatWidget = dynamic(() => import('@/components/ui/AIChatWidget/AIChatWi
 export default function NavigationWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, authLoading } = useAuth();
+
+  const isInitializing = loading || authLoading;
 
   const isFocusMode = pathname === '/focus';
   const isAuthRoute =
@@ -27,18 +29,18 @@ export default function NavigationWrapper({ children }: { children: React.ReactN
     pathname.startsWith('/reset-password');
 
   useEffect(() => {
-    if (!loading && !isAuthenticated && !isAuthRoute) {
+    if (!isInitializing && !isAuthenticated && !isAuthRoute) {
       router.replace('/login');
     }
-  }, [loading, isAuthenticated, isAuthRoute, router]);
+  }, [isInitializing, isAuthenticated, isAuthRoute, router]);
 
   useEffect(() => {
-    if (!loading && isAuthenticated && isAuthRoute) {
+    if (!isInitializing && isAuthenticated && isAuthRoute) {
       router.replace('/');
     }
-  }, [loading, isAuthenticated, isAuthRoute, router]);
+  }, [isInitializing, isAuthenticated, isAuthRoute, router]);
 
-  if (loading && !isAuthRoute) {
+  if (isInitializing && !isAuthRoute) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', width: '100vw' }}>
         <style>{`
