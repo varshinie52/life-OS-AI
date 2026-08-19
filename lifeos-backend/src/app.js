@@ -57,7 +57,7 @@ app.use(cors({
       !origin ||
       allowedOrigins.includes(origin) ||
       (env.NODE_ENV === 'development' && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) ||
-      (origin && (origin.endsWith('.vercel.app') || origin.endsWith('.now.sh')))
+      (origin && (origin.endsWith('.vercel.app') || origin.endsWith('.now.sh') || origin.endsWith('.onrender.com')))
     ) {
       return callback(null, true);
     }
